@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authenticator TOTP QR Code</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            margin-bottom: 10px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        #qrcode {
+            margin-bottom: 20px;
+        }
+        .floating-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .regular-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            display: none;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .modal-content input, .modal-content label {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .modal-content button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <h1>Authenticator TOTP QR Code</h1>
+        <h2>Scan the following code with your Authenticator APP</h2>
+        <div id="qrcode"></div>
+    </div>
+
+    <button class="floating-button" id="openModal">+</button>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2>Generate TOTP URL</h2>
+            <label for="secret">Secret:</label>
+            <input type="text" id="secret" placeholder="Enter secret">
+
+            <label for="label">Label:</label>
+            <input type="text" id="label" placeholder="Enter label">
+
+            <label for="issuer">Issuer (optional):</label>
+            <input type="text" id="issuer" placeholder="Enter issuer">
+
+            <label for="hash">Hash URL parameters</label>
+            <input type="checkbox" id="hash"> 
+
+            <button class="regular-button" id="generateUrl">Generate</button>
+            <button class="regular-button" id="closeModal">Close</button>
+        </div>
+    </div>
+
+    
+    <script>
+        // Helper function to get URL parameters
+        function getUrlParameter(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+
+        // Extract individual parameters or the hashed parameter
+        const secret = getUrlParameter('secret');
+        const label = getUrlParameter('label');
+        const issuer = getUrlParameter('issuer');
+        const hashed = getUrlParameter('hashed');
+
+        let decodedData = {};
+
+        if (hashed) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(hashed, 'your-encryption-key'); // Replace with your key
+                const jsonData = bytes.toString(CryptoJS.enc.Utf8);
+                decodedData = JSON.parse(jsonData);
+            } catch (error) {
+                document.body.innerHTML = '<p style="color: red;">Error: Invalid hashed parameter.</p>';
+                throw error;
+            }
+        }
+
+        const finalSecret = hashed ? decodedData.secret : secret;
+        const finalLabel = hashed ? decodedData.label : label;
+        const finalIssuer = hashed ? decodedData.issuer : issuer;
+
+        if (!finalSecret || !finalLabel) {
+            // get the content div and replace it with an error message
+            const contentDiv = document.getElementById('content');
+            contentDiv.innerHTML = '<p style="color: red;">Something is missing, check the instructions.</p>';            
+        } else {
+            // Build the TOTP URI
+            let uri = `otpauth://totp/${encodeURIComponent(finalLabel)}?secret=${encodeURIComponent(finalSecret)}`;
+            if (finalIssuer) {
+                uri += `&issuer=${encodeURIComponent(finalIssuer)}`;
+            }
+
+            // Generate QR Code
+            const qrcodeDiv = document.getElementById('qrcode');
+            new QRCode(qrcodeDiv, {
+                text: uri,
+                width: 512,
+                height: 512,
+            });
+
+            // Remove the "title" attribute from the qrcodeDiv element
+            qrcodeDiv.removeAttribute('title');
+        }
+
+        // Modal functionality
+        const modal = document.getElementById('modal');
+        const openModal = document.getElementById('openModal');
+        const closeModal = document.getElementById('closeModal');
+        const generateUrl = document.getElementById('generateUrl');
+
+        openModal.addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        generateUrl.addEventListener('click', () => {
+            const secret = document.getElementById('secret').value;
+            const label = document.getElementById('label').value;
+            const issuer = document.getElementById('issuer').value;
+            const hash = document.getElementById('hash').checked;
+
+            if (!secret || !label) {
+                alert('Secret and label are required!');
+                return;
+            }
+
+            let url;
+
+            if (hash) {
+                const data = { secret, label, issuer };
+                const jsonData = JSON.stringify(data);
+                const encrypted = CryptoJS.AES.encrypt(jsonData, 'your-encryption-key').toString(); // Replace with your key
+                url = `${window.location.origin}${window.location.pathname}?hashed=${encodeURIComponent(encrypted)}`;
+            } else {
+                url = `${window.location.origin}${window.location.pathname}?secret=${encodeURIComponent(secret)}&label=${encodeURIComponent(label)}`;
+                if (issuer) {
+                    url += `&issuer=${encodeURIComponent(issuer)}`;
+                }
+            }
+
+            window.location.href = url;
+        });
+    </script>
+</body>
+</html>
