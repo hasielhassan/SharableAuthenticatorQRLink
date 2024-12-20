@@ -26,3 +26,7 @@ Check it out here: https://www.hasielhassan.com/ShareableAuthenticatorQRLink
 
 3. **Share the Link:**
    - Once the QR code is generated, you can copy the page url and share it with others.
+
+
+## Attributions
+- Favicon: <a href="https://www.flaticon.com/free-icons/qr-code-scan" title="qr-code-scan icons">Qr-code-scan icons created by Freepik - Flaticon</a>

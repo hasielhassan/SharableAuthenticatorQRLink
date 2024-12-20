@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authenticator TOTP QR Code</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
@@ -133,7 +134,7 @@
 
         if (hashed) {
             try {
-                const bytes = CryptoJS.AES.decrypt(hashed, 'your-encryption-key'); // Replace with your key
+                const bytes = CryptoJS.AES.decrypt(hashed, 'obfuscation-key');
                 const jsonData = bytes.toString(CryptoJS.enc.Utf8);
                 decodedData = JSON.parse(jsonData);
             } catch (error) {
@@ -199,7 +200,7 @@
             if (hash) {
                 const data = { secret, label, issuer };
                 const jsonData = JSON.stringify(data);
-                const encrypted = CryptoJS.AES.encrypt(jsonData, 'your-encryption-key').toString(); // Replace with your key
+                const encrypted = CryptoJS.AES.encrypt(jsonData, 'obfuscation-key').toString();
                 url = `${window.location.origin}${window.location.pathname}?hashed=${encodeURIComponent(encrypted)}`;
             } else {
                 url = `${window.location.origin}${window.location.pathname}?secret=${encodeURIComponent(secret)}&label=${encodeURIComponent(label)}`;
